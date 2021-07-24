@@ -12,6 +12,8 @@ final class TaskRunnerExtension extends CompilerExtension
 	public function loadConfiguration(): void
 	{
 		$builder = $this->getContainerBuilder();
+		
+		$this->compiler->addExportedType(ITaskRunner::class);
 
 		$builder->addDefinition($this->prefix('taskRunner'))
 			->setType(ITaskRunner::class)
