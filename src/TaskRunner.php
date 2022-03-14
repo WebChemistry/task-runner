@@ -2,13 +2,13 @@
 
 namespace WebChemistry\TaskRunner;
 
-use Nette\SmartObject;
+use OutOfBoundsException;
+use ReflectionClass;
 use Throwable;
+use WebChemistry\TaskRunner\Attribute\Task;
 
 final class TaskRunner implements ITaskRunner
 {
-
-	use SmartObject;
 
 	/**
 	 * @param ITask[] $tasks
@@ -17,6 +17,17 @@ final class TaskRunner implements ITaskRunner
 		private array $tasks
 	)
 	{
+	}
+
+	public function runByName(string $name): void
+	{
+		$task = $this->getByName($name);
+
+		if ($task === null) {
+			throw new OutOfBoundsException(sprintf('Task with %s does not exist.', $name));
+		}
+
+		$task->run();
 	}
 
 	public function run(string $instanceOf): void
@@ -59,6 +70,23 @@ final class TaskRunner implements ITaskRunner
 		}
 
 		return $success;
+	}
+
+	private function getByName(string $name): ?ITask
+	{
+		foreach ($this->tasks as $task) {
+			$reflection = new ReflectionClass($task);
+			foreach ($reflection->getAttributes(Task::class) as $attribute) {
+				/** @var Task $instance */
+				$instance = $attribute->newInstance();
+
+				if ($instance->name === $name) {
+					return $task;
+				}
+			}
+		}
+
+		return null;
 	}
 
 }
