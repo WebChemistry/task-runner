@@ -6,17 +6,23 @@ use OutOfBoundsException;
 use ReflectionClass;
 use Throwable;
 use WebChemistry\TaskRunner\Attribute\Task;
+use WebChemistry\TaskRunner\Printer\IPrinter;
+use WebChemistry\TaskRunner\Printer\StdoutPrinter;
 
 final class TaskRunner implements ITaskRunner
 {
+
+	private IPrinter $printer;
 
 	/**
 	 * @param ITask[] $tasks
 	 */
 	public function __construct(
-		private array $tasks
+		private array $tasks,
+		IPrinter $printer = null,
 	)
 	{
+		$this->printer = $printer ?? new StdoutPrinter();
 	}
 
 	public function runByName(string $name): void
@@ -27,7 +33,7 @@ final class TaskRunner implements ITaskRunner
 			throw new OutOfBoundsException(sprintf('Task with %s does not exist.', $name));
 		}
 
-		$task->run();
+		$task->run($this->printer);
 	}
 
 	public function run(string $instanceOf): void
@@ -51,7 +57,8 @@ final class TaskRunner implements ITaskRunner
 	{
 		$name = get_class($task);
 		$success = true;
-		echo "Task $name started\n";
+
+		$this->printer->printStep(sprintf('Task %s started', $name));
 
 		try {
 			$state = $task->run();
@@ -59,14 +66,14 @@ final class TaskRunner implements ITaskRunner
 				$success = false;
 			}
 		} catch (Throwable $exception) {
-			echo "Task $name errored\n";
-			echo (string) $exception . "\n";
+			$this->printer->printStep(sprintf('Task %s errored', $name));
+			$this->printer->printError((string) $exception);
 
 			$success = false;
 		}
 
 		if ($success) {
-			echo "Task $name success\n";
+			$this->printer->printStep(sprintf('Task %s success', $name));
 		}
 
 		return $success;
