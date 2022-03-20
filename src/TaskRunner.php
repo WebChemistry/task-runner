@@ -33,7 +33,7 @@ final class TaskRunner implements ITaskRunner
 			throw new OutOfBoundsException(sprintf('Task with %s does not exist.', $name));
 		}
 
-		$task->run($this->printer);
+		$this->runTask($task);
 	}
 
 	public function run(string $instanceOf): void
@@ -61,7 +61,7 @@ final class TaskRunner implements ITaskRunner
 		$this->printer->printStep(sprintf('Task %s started', $name));
 
 		try {
-			$state = $task->run();
+			$state = $task->run($this->printer);
 			if ($state === false) {
 				$success = false;
 			}
