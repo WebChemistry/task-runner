@@ -6,8 +6,8 @@ use OutOfBoundsException;
 use ReflectionClass;
 use Throwable;
 use WebChemistry\TaskRunner\Attribute\Task;
+use WebChemistry\TaskRunner\Printer\ConsolePrinter;
 use WebChemistry\TaskRunner\Printer\IPrinter;
-use WebChemistry\TaskRunner\Printer\StdoutPrinter;
 
 final class TaskRunner implements ITaskRunner
 {
@@ -22,7 +22,7 @@ final class TaskRunner implements ITaskRunner
 		IPrinter $printer = null,
 	)
 	{
-		$this->printer = $printer ?? new StdoutPrinter();
+		$this->printer = $printer ?? new ConsolePrinter();
 	}
 
 	public function runByName(string $name): void
