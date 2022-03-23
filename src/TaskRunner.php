@@ -2,7 +2,8 @@
 
 namespace WebChemistry\TaskRunner;
 
-use OutOfBoundsException;
+use Generator;
+use LogicException;
 use ReflectionClass;
 use Throwable;
 use WebChemistry\TaskRunner\Attribute\Task;
@@ -25,26 +26,60 @@ final class TaskRunner implements ITaskRunner
 		$this->printer = $printer ?? new ConsolePrinter();
 	}
 
-	public function runByName(string $name): void
+	/**
+	 * @template T
+	 * @param class-string<T> $class
+	 * @return Generator<T>
+	 */
+	private function getTasksByClassName(string $class): Generator
 	{
-		$task = $this->getByName($name);
-
-		if ($task === null) {
-			throw new OutOfBoundsException(sprintf('Task with %s does not exist.', $name));
+		foreach ($this->tasks as $task) {
+			if ($task instanceof $class) {
+				yield $task;
+			}
 		}
-
-		$this->runTask($task);
 	}
 
-	public function run(string $instanceOf): void
+	/**
+	 * @return Generator<ITask>
+	 */
+	private function getTasksByName(string $name): Generator
 	{
-		$success = true;
 		foreach ($this->tasks as $task) {
-			if ($task instanceof $instanceOf) {
-				$state = $this->runTask($task);
-				if ($state === false) {
-					$success = false;
+			$reflection = new ReflectionClass($task);
+			foreach ($reflection->getAttributes(Task::class) as $attribute) {
+				/** @var Task $instance */
+				$instance = $attribute->newInstance();
+
+				if ($instance->name === $name) {
+					yield $task;
 				}
+			}
+		}
+	}
+
+	public function run(string $name): void
+	{
+		if (class_exists($name) || interface_exists($name)) {
+			$tasks = iterator_to_array($this->getTasksByClassName($name));
+
+			if (!$tasks) {
+				throw new LogicException(sprintf('No tasks found by %s', $name));
+			}
+		} else {
+			$tasks = iterator_to_array($this->getTasksByName($name));
+
+			if (!$tasks) {
+				throw new LogicException(sprintf('No tasks found by %s', $name));
+			}
+		}
+
+		$success = true;
+		foreach ($tasks as $task) {
+			$state = $this->runTask($task);
+
+			if ($state === false) {
+				$success = false;
 			}
 		}
 
@@ -77,23 +112,6 @@ final class TaskRunner implements ITaskRunner
 		}
 
 		return $success;
-	}
-
-	private function getByName(string $name): ?ITask
-	{
-		foreach ($this->tasks as $task) {
-			$reflection = new ReflectionClass($task);
-			foreach ($reflection->getAttributes(Task::class) as $attribute) {
-				/** @var Task $instance */
-				$instance = $attribute->newInstance();
-
-				if ($instance->name === $name) {
-					return $task;
-				}
-			}
-		}
-
-		return null;
 	}
 
 }
