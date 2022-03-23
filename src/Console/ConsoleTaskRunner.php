@@ -8,9 +8,11 @@ use WebChemistry\TaskRunner\ITaskRunner;
 final class ConsoleTaskRunner
 {
 
-	public static function boot(ITaskRunner $taskRunner): void
+	public static function boot(ITaskRunner $taskRunner, bool $initialize = true): void
 	{
-		self::initialize();
+		if ($initialize) {
+			self::initialize();
+		}
 
 		$name = $_SERVER['argv'][1] ?? null;
 		if (!$name) {
@@ -25,6 +27,7 @@ final class ConsoleTaskRunner
 		ini_set('display_errors', '1');
 		ini_set('display_startup_errors', '1');
 		ini_set('memory_limit', '-1');
+		ini_set('max_execution_time', '120');
 
 		error_reporting(E_ALL);
 	}
