@@ -2,116 +2,111 @@
 
 namespace WebChemistry\TaskRunner;
 
-use Generator;
 use LogicException;
-use ReflectionClass;
 use Throwable;
-use WebChemistry\TaskRunner\Attribute\Task;
-use WebChemistry\TaskRunner\Printer\ConsolePrinter;
-use WebChemistry\TaskRunner\Printer\IPrinter;
+use WebChemistry\TaskRunner\Logger\TaskLogger;
+use WebChemistry\TaskRunner\Result\TaskResult;
+use WebChemistry\TaskRunner\Result\TaskRunnerResult;
+use WebChemistry\TaskRunner\Utility\TaskRunnerUtility;
 
 final class TaskRunner implements ITaskRunner
 {
-
-	private IPrinter $printer;
 
 	/**
 	 * @param ITask[] $tasks
 	 */
 	public function __construct(
 		private array $tasks,
-		IPrinter $printer = null,
 	)
 	{
-		$this->printer = $printer ?? new ConsolePrinter();
 	}
 
 	/**
-	 * @template T
+	 * @template T of ITask
 	 * @param class-string<T> $class
-	 * @return Generator<T>
+	 * @return T[]
 	 */
-	private function getTasksByClassName(string $class): Generator
+	private function getTasksByClassName(string $class): array
 	{
+		$return = [];
+
 		foreach ($this->tasks as $task) {
 			if ($task instanceof $class) {
-				yield $task;
+				$return[] = $task;
 			}
 		}
+
+		return $return;
 	}
 
 	/**
-	 * @return Generator<ITask>
+	 * @return ITask[]
 	 */
-	private function getTasksByName(string $name): Generator
+	public function getTasks(): array
 	{
-		foreach ($this->tasks as $task) {
-			$reflection = new ReflectionClass($task);
-			foreach ($reflection->getAttributes(Task::class) as $attribute) {
-				/** @var Task $instance */
-				$instance = $attribute->newInstance();
-
-				if ($instance->name === $name) {
-					yield $task;
-				}
-			}
-		}
+		return $this->tasks;
 	}
 
-	public function run(string $name): void
+	public function runByGroup(string $group): TaskRunnerResult
 	{
-		if (class_exists($name) || interface_exists($name)) {
-			$tasks = iterator_to_array($this->getTasksByClassName($name));
+		$tasks = TaskRunnerUtility::getTaskByGroups($this->tasks)[$group] ?? [];
 
-			if (!$tasks) {
-				throw new LogicException(sprintf('No tasks found by %s', $name));
-			}
-		} else {
-			$tasks = iterator_to_array($this->getTasksByName($name));
-
-			if (!$tasks) {
-				throw new LogicException(sprintf('No tasks found by %s', $name));
-			}
+		if (!$tasks) {
+			throw new LogicException(sprintf('No task grouped as %s', $group));
 		}
 
-		$success = true;
+		return $this->runTasks($tasks);
+	}
+
+	public function runByName(string $name): TaskRunnerResult
+	{
+		$task = TaskRunnerUtility::getTaskNames($this->tasks)[$name] ?? throw new LogicException(sprintf('No task named as %s', $name));
+
+		return $this->runTasks([$task]);
+	}
+
+	/**
+	 * @param class-string<ITask> $className
+	 */
+	public function run(string $className): TaskRunnerResult
+	{
+		$tasks = $this->getTasksByClassName($className);
+
+		if (!$tasks) {
+			throw new LogicException(sprintf('No tasks found by %s', $className));
+		}
+
+		return $this->runTasks($tasks);
+	}
+
+	/**
+	 * @param ITask[] $tasks
+	 */
+	private function runTasks(array $tasks): TaskRunnerResult
+	{
+		$result = new TaskRunnerResult();
+
 		foreach ($tasks as $task) {
-			$state = $this->runTask($task);
-
-			if ($state === false) {
-				$success = false;
-			}
+			$result->run[] = $this->runTask($task);
 		}
 
-		if (!$success) {
-			exit(1);
-		}
+		return $result;
 	}
 
-	private function runTask(ITask $task): bool
+	private function runTask(ITask $task): TaskResult
 	{
-		$name = get_class($task);
-		$success = true;
-
-		$this->printer->printStep(sprintf('Task %s started', $name));
+		$result = new TaskResult($task, new TaskLogger());
 
 		try {
-			$state = $task->run($this->printer);
-			if ($state === false) {
-				$success = false;
-			}
+			$success = $task->run($result->logger);
+
+			$result->success = is_bool($success) ? $success : true;
 		} catch (Throwable $exception) {
-			$this->printer->printStep(sprintf('Task %s errored', $name));
-			$this->printer->printError((string) $exception);
-
-			$success = false;
+			$result->error = $exception;
+			$result->success = false;
 		}
 
-		if ($success) {
-			$this->printer->printStep(sprintf('Task %s success', $name));
-		}
-
-		return $success;
+		return $result;
 	}
 
 }

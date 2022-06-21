@@ -2,9 +2,23 @@
 
 namespace WebChemistry\TaskRunner;
 
+use WebChemistry\TaskRunner\Result\TaskRunnerResult;
+
 interface ITaskRunner
 {
 
-	public function run(string $name): void;
+	/**
+	 * @return ITask[]
+	 */
+	public function getTasks(): array;
+
+	public function runByGroup(string $group): TaskRunnerResult;
+
+	public function runByName(string $name): TaskRunnerResult;
+
+	/**
+	 * @param class-string<ITask> $className
+	 */
+	public function run(string $className): TaskRunnerResult;
 
 }

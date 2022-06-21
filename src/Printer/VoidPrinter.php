@@ -17,4 +17,16 @@ final class VoidPrinter implements IPrinter
 	{
 	}
 
+	public function printInfo(string $content): void
+	{
+	}
+
+	public function printDebug(string $content): void
+	{
+	}
+
+	public function printWarning(string $content): void
+	{
+	}
+
 }

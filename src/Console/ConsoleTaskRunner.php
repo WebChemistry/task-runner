@@ -2,34 +2,47 @@
 
 namespace WebChemistry\TaskRunner\Console;
 
+use DomainException;
 use OutOfBoundsException;
+use Utilitte\Asserts\TypeAssert;
+use WebChemistry\TaskRunner\ITask;
 use WebChemistry\TaskRunner\ITaskRunner;
 
 final class ConsoleTaskRunner
 {
 
-	public static function boot(ITaskRunner $taskRunner, bool $initialize = true): void
+	public static function boot(ITaskRunner $taskRunner, ?string $memoryLimit = '-1', ?int $executionTime = 120): void
 	{
-		if ($initialize) {
-			self::initialize();
+		if ($memoryLimit || $executionTime) {
+			ini_set('display_errors', '1');
+			ini_set('display_startup_errors', '1');
+			error_reporting(E_ALL);
+
+			if ($memoryLimit) {
+				ini_set('memory_limit', $memoryLimit);
+			}
+
+			if ($executionTime) {
+				ini_set('max_execution_time', (string) $executionTime);
+			}
 		}
 
 		$name = $_SERVER['argv'][1] ?? null;
-		if (!$name) {
-			throw new OutOfBoundsException('Please fill task name or class/interface name.');
+		$arg = $_SERVER['argv'][2] ?? null;
+
+		if (!in_array($name, ['class', 'name', 'group'], true)) {
+			throw new OutOfBoundsException('First argument must be class or name or group.');
 		}
 
-		$taskRunner->run(strtr($name, ['/' => '\\']));
-	}
+		if (!$arg) {
+			throw new DomainException('Second argument must be a string.');
+		}
 
-	private static function initialize(): void
-	{
-		ini_set('display_errors', '1');
-		ini_set('display_startup_errors', '1');
-		ini_set('memory_limit', '-1');
-		ini_set('max_execution_time', '120');
-
-		error_reporting(E_ALL);
+		match ($name) {
+			'class' => $taskRunner->run(TypeAssert::classStringOf(strtr($arg, ['/' => '\\']), ITask::class))->print(true),
+			'name' => $taskRunner->runByName($arg)->print(true),
+			'group' => $taskRunner->runByGroup($arg)->print(true),
+		};
 	}
 
 }

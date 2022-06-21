@@ -2,7 +2,7 @@
 
 namespace WebChemistry\TaskRunner;
 
-use WebChemistry\TaskRunner\Printer\IPrinter;
+use WebChemistry\TaskRunner\Logger\TaskLogger;
 
 interface ITask
 {
@@ -10,6 +10,6 @@ interface ITask
 	/**
 	 * @return void|bool
 	 */
-	public function run(IPrinter $printer);
+	public function run(TaskLogger $logger);
 
 }

@@ -9,7 +9,8 @@ final class Task
 {
 
 	public function __construct(
-		public string $name,
+		public ?string $name = null,
+		public ?string $group = null,
 	)
 	{
 	}
