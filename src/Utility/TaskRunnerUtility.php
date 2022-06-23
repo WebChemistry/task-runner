@@ -21,6 +21,10 @@ final class TaskRunnerUtility
 		foreach ($tasks as $task) {
 			$name = self::getTaskName($task);
 
+			if ($name === null) {
+				continue;
+			}
+
 			if (isset($return[$name])) {
 				throw new DomainException(
 					sprintf(
