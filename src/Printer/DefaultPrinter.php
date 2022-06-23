@@ -10,6 +10,8 @@ final class DefaultPrinter
 {
 
 	private const STEP = 36;
+	private const SUCCESS = 32;
+	private const WARNING = 33;
 	private const ERROR = 31;
 
 	public function __construct(
@@ -34,11 +36,11 @@ final class DefaultPrinter
 			$stack = $result->logger->getStack();
 
 			if ($stack) {
-				$this->printColor(sprintf('Task %s successed and had following log:', $result->task::class), self::STEP);
+				$this->printColor(sprintf('Task %s successed and had following log:', $result->task::class), self::SUCCESS);
 
 				$this->printStack($stack);
 			} else {
-				$this->printColor(sprintf('Task %s successed.', $result->task::class), self::STEP);
+				$this->printColor(sprintf('Task %s successed.', $result->task::class), self::SUCCESS);
 			}
 		}
 
@@ -46,11 +48,11 @@ final class DefaultPrinter
 			$stack = $result->logger->getStack();
 
 			if ($stack) {
-				$this->printColor(sprintf('Task %s errored and had following log:', $result->task::class), self::STEP);
+				$this->printColor(sprintf('Task %s errored and had following log:', $result->task::class), self::ERROR);
 
 				$this->printStack($stack);
 			} else {
-				$this->printColor(sprintf('Task %s errored.', $result->task::class), self::STEP);
+				$this->printColor(sprintf('Task %s errored.', $result->task::class), self::ERROR);
 			}
 
 			if ($error = $result->error) {
@@ -71,6 +73,8 @@ final class DefaultPrinter
 		static $colors = [
 			TaskLogger::STEP => self::STEP,
 			TaskLogger::ERROR => self::ERROR,
+			TaskLogger::SUCCESS => self::SUCCESS,
+			TaskLogger::WARNING => self::WARNING,
 		];
 
 		foreach ($stack as [$content, $type]) {
@@ -81,7 +85,7 @@ final class DefaultPrinter
 	private function printColor(string $content, ?int $color = null): void
 	{
 		if ($color) {
-			echo sprintf('\u001b[%dm%s\u001b[0m', $color, $content) . "\n";
+			echo sprintf("\033[%dm%s\033[0m", $color, $content) . "\n";
 		} else {
 			echo $content . "\n";
 		}

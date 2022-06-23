@@ -10,7 +10,9 @@ final class TaskLogger
 	public const DEBUG = 4;
 	public const ERROR = 8;
 	public const STEP = 16;
-	public const ALL = self::DEFAULT | self::INFO | self::DEBUG | self::ERROR | self::STEP;
+	public const SUCCESS = 32;
+	public const WARNING = 64;
+	public const ALL = self::DEFAULT | self::INFO | self::DEBUG | self::ERROR | self::STEP | self::SUCCESS | self::WARNING;
 
 	/** @var array{string, int}[] */
 	private array $stack = [];
@@ -38,6 +40,16 @@ final class TaskLogger
 	public function logDebug(string $content): void
 	{
 		$this->stack[] = [$content, self::DEBUG];
+	}
+
+	public function logSuccess(string $content): void
+	{
+		$this->stack[] = [$content, self::DEBUG];
+	}
+
+	public function logWarning(string $content): void
+	{
+		$this->stack[] = [$content, self::WARNING];
 	}
 
 	/**
