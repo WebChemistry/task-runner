@@ -4,14 +4,14 @@ namespace WebChemistry\TaskRunner\Result;
 
 use Throwable;
 use WebChemistry\TaskRunner\ITask;
-use WebChemistry\TaskRunner\Logger\TaskLogger;
+use WebChemistry\TaskRunner\Logger\StackLogger;
 
 final class TaskResult
 {
 
 	public function __construct(
 		public ITask $task,
-		public TaskLogger $logger,
+		public ?StackLogger $logger,
 		public bool $success = true,
 		public ?Throwable $error = null,
 	)

@@ -3,7 +3,7 @@
 namespace WebChemistry\TaskRunner\Printer;
 
 use Throwable;
-use WebChemistry\TaskRunner\Logger\TaskLogger;
+use WebChemistry\TaskRunner\Logger\Severity;
 use WebChemistry\TaskRunner\Result\TaskRunnerResult;
 
 final class DefaultPrinter
@@ -15,42 +15,56 @@ final class DefaultPrinter
 	private const ERROR = 31;
 
 	public function __construct(
-		private TaskRunnerResult $result,
+		private readonly TaskRunnerResult $result,
 	)
 	{
 	}
 
 	public function print(bool $exit = false): void
 	{
-		$succesed = $errored = [];
+		$succeeded = $errored = [];
 
 		foreach ($this->result->run as $run) {
 			if ($run->success) {
-				$succesed[] = $run;
+				$succeeded[] = $run;
 			} else {
 				$errored[] = $run;
 			}
 		}
 
-		foreach ($succesed as $result) {
-			$stack = $result->logger->getStack();
+		$summaryStack = [];
+
+		foreach ($succeeded as $result) {
+			$stack = $result->logger?->getStack();
 
 			if ($stack) {
 				$this->printColor(sprintf('Task %s successed and had following log:', $result->task::class), self::SUCCESS);
 
 				$this->printStack($stack);
+
+				if (is_string($summary = $stack[2]['summary'] ?? null)) {
+					$summaryStack[$summary] ??= 0;
+					$summaryStack[$summary]++;
+				}
+
 			} else {
 				$this->printColor(sprintf('Task %s successed.', $result->task::class), self::SUCCESS);
 			}
 		}
 
 		foreach ($errored as $result) {
-			$stack = $result->logger->getStack();
+			$stack = $result->logger?->getStack();
 
 			if ($stack) {
 				$this->printColor(sprintf('Task %s errored and had following log:', $result->task::class), self::ERROR);
 
 				$this->printStack($stack);
+
+				if (is_string($summary = $stack[2]['summary'] ?? null)) {
+					$summaryStack[$summary] ??= 0;
+					$summaryStack[$summary]++;
+				}
+
 			} else {
 				$this->printColor(sprintf('Task %s errored.', $result->task::class), self::ERROR);
 			}
@@ -60,25 +74,26 @@ final class DefaultPrinter
 			}
 		}
 
+		$this->printSummary($summaryStack);
+
 		if ($exit && $errored) {
 			exit($this->result->hasException() ? 255 : 1);
 		}
 	}
 
 	/**
-	 * @param array{string, int}[] $stack
+	 * @param array{mixed, string, mixed[]}[] $stack
 	 */
 	private function printStack(array $stack): void
 	{
-		static $colors = [
-			TaskLogger::STEP => self::STEP,
-			TaskLogger::ERROR => self::ERROR,
-			TaskLogger::SUCCESS => self::SUCCESS,
-			TaskLogger::WARNING => self::WARNING,
-		];
-
-		foreach ($stack as [$content, $type]) {
-			$this->printColor($content, $colors[$type] ?? null);
+		foreach ($stack as [$type, $content]) {
+			$this->printColor($content, match ($type) {
+				Severity::EMERGENCY, Severity::ERROR, Severity::ALERT, Severity::CRITICAL => self::ERROR,
+				Severity::SUCCESS => self::SUCCESS,
+				Severity::STEP => self::STEP,
+				Severity::WARNING => self::WARNING,
+				default => null,
+			});
 		}
 	}
 
@@ -93,7 +108,22 @@ final class DefaultPrinter
 
 	private function printException(Throwable $exception): void
 	{
-		echo (string) $exception;
+		echo $exception;
+	}
+
+	/**
+	 * @param array<string, int> $summaryStack
+	 */
+	private function printSummary(array $summaryStack): void
+	{
+		if (!$summaryStack) {
+			return;
+		}
+
+		$this->printColor('Summary of logs:');
+		foreach ($summaryStack as $name => $count) {
+			$this->printColor(sprintf("\t%s: %d", $name, $count));
+		}
 	}
 
 }

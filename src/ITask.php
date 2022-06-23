@@ -2,7 +2,7 @@
 
 namespace WebChemistry\TaskRunner;
 
-use WebChemistry\TaskRunner\Logger\TaskLogger;
+use Psr\Log\LoggerInterface;
 
 interface ITask
 {
@@ -10,6 +10,6 @@ interface ITask
 	/**
 	 * @return void|bool
 	 */
-	public function run(TaskLogger $logger);
+	public function run(LoggerInterface $logger);
 
 }

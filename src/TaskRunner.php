@@ -4,7 +4,7 @@ namespace WebChemistry\TaskRunner;
 
 use LogicException;
 use Throwable;
-use WebChemistry\TaskRunner\Logger\TaskLogger;
+use WebChemistry\TaskRunner\Logger\StackLogger;
 use WebChemistry\TaskRunner\Result\TaskResult;
 use WebChemistry\TaskRunner\Result\TaskRunnerResult;
 use WebChemistry\TaskRunner\Utility\TaskRunnerUtility;
@@ -95,10 +95,10 @@ final class TaskRunner implements ITaskRunner
 
 	private function runTask(ITask $task): TaskResult
 	{
-		$result = new TaskResult($task, new TaskLogger());
+		$result = new TaskResult($task, $logger = new StackLogger());
 
 		try {
-			$success = $task->run($result->logger);
+			$success = $task->run($logger);
 
 			$result->success = is_bool($success) ? $success : true;
 		} catch (Throwable $exception) {
