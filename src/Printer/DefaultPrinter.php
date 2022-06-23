@@ -14,6 +14,9 @@ final class DefaultPrinter
 	private const WARNING = 33;
 	private const ERROR = 31;
 
+	/** @var array<string, int> */
+	private array $summaryStack = [];
+
 	public function __construct(
 		private readonly TaskRunnerResult $result,
 	)
@@ -22,7 +25,7 @@ final class DefaultPrinter
 
 	public function print(bool $exit = false): void
 	{
-		$succeeded = $errored = [];
+		$succeeded = $errored = $this->summaryStack = [];
 
 		foreach ($this->result->run as $run) {
 			if ($run->success) {
@@ -32,8 +35,6 @@ final class DefaultPrinter
 			}
 		}
 
-		$summaryStack = [];
-
 		foreach ($succeeded as $result) {
 			$stack = $result->logger?->getStack();
 
@@ -41,11 +42,6 @@ final class DefaultPrinter
 				$this->printColor(sprintf('Task %s successed and had following log:', $result->task::class), self::SUCCESS);
 
 				$this->printStack($stack);
-
-				if (is_string($summary = $stack[2]['summary'] ?? null)) {
-					$summaryStack[$summary] ??= 0;
-					$summaryStack[$summary]++;
-				}
 
 			} else {
 				$this->printColor(sprintf('Task %s successed.', $result->task::class), self::SUCCESS);
@@ -60,11 +56,6 @@ final class DefaultPrinter
 
 				$this->printStack($stack);
 
-				if (is_string($summary = $stack[2]['summary'] ?? null)) {
-					$summaryStack[$summary] ??= 0;
-					$summaryStack[$summary]++;
-				}
-
 			} else {
 				$this->printColor(sprintf('Task %s errored.', $result->task::class), self::ERROR);
 			}
@@ -74,7 +65,7 @@ final class DefaultPrinter
 			}
 		}
 
-		$this->printSummary($summaryStack);
+		$this->printSummary();
 
 		if ($exit && $errored) {
 			exit($this->result->hasException() ? 255 : 1);
@@ -86,7 +77,7 @@ final class DefaultPrinter
 	 */
 	private function printStack(array $stack): void
 	{
-		foreach ($stack as [$type, $content]) {
+		foreach ($stack as [$type, $content, $context]) {
 			$this->printColor($content, match ($type) {
 				Severity::EMERGENCY, Severity::ERROR, Severity::ALERT, Severity::CRITICAL => self::ERROR,
 				Severity::SUCCESS => self::SUCCESS,
@@ -94,6 +85,11 @@ final class DefaultPrinter
 				Severity::WARNING => self::WARNING,
 				default => null,
 			});
+
+			if (isset($context['summary'])) {
+				$this->summaryStack[$context['summary']] ??= 0;
+				$this->summaryStack[$context['summary']]++;
+			}
 		}
 	}
 
@@ -111,17 +107,14 @@ final class DefaultPrinter
 		echo $exception;
 	}
 
-	/**
-	 * @param array<string, int> $summaryStack
-	 */
-	private function printSummary(array $summaryStack): void
+	private function printSummary(): void
 	{
-		if (!$summaryStack) {
+		if (!$this->summaryStack) {
 			return;
 		}
 
 		$this->printColor('Summary of logs:');
-		foreach ($summaryStack as $name => $count) {
+		foreach ($this->summaryStack as $name => $count) {
 			$this->printColor(sprintf("\t%s: %d", $name, $count));
 		}
 	}
