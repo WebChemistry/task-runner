@@ -2,25 +2,22 @@
 
 namespace WebChemistry\TaskRunner\Result;
 
-use WebChemistry\TaskRunner\ITask;
-use WebChemistry\TaskRunner\Printer\DefaultPrinter;
-
 final class TaskRunnerResult
 {
 
 	/**
-	 * @param TaskResult[] $run
+	 * @param TaskResult[] $results
 	 */
 	public function __construct(
-		public array $run = [],
+		public readonly array $results = [],
 	)
 	{
 	}
 
 	public function hasException(): bool
 	{
-		foreach ($this->run as $run) {
-			if ($run->error) {
+		foreach ($this->results as $run) {
+			if ($run->exception) {
 				return true;
 			}
 		}
@@ -30,18 +27,13 @@ final class TaskRunnerResult
 
 	public function isSuccess(): bool
 	{
-		foreach ($this->run as $run) {
+		foreach ($this->results as $run) {
 			if (!$run->success) {
 				return false;
 			}
 		}
 
 		return true;
-	}
-
-	public function print(bool $exit = false): void
-	{
-		(new DefaultPrinter($this))->print($exit);
 	}
 
 }

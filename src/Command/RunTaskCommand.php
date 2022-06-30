@@ -72,8 +72,7 @@ final class RunTaskCommand extends Command
 
 		}
 
-		$result = new TaskRunnerResult(array_merge(...array_map(fn (TaskRunnerResult $result) => $result->run, $results)));
-		$result->print();
+		$result = new TaskRunnerResult(array_merge(...array_map(fn (TaskRunnerResult $result) => $result->results, $results)));
 
 		return $result->isSuccess() ? self::SUCCESS : self::FAILURE;
 	}

@@ -3,8 +3,10 @@
 namespace WebChemistry\TaskRunner;
 
 use LogicException;
+use Psr\Log\LoggerInterface;
 use Throwable;
-use WebChemistry\TaskRunner\Logger\StackLogger;
+use WebChemistry\TaskRunner\Extension\ITaskRunnerExtension;
+use WebChemistry\TaskRunner\Logger\StdoutLogger;
 use WebChemistry\TaskRunner\Result\TaskResult;
 use WebChemistry\TaskRunner\Result\TaskRunnerResult;
 use WebChemistry\TaskRunner\Utility\TaskRunnerUtility;
@@ -12,13 +14,44 @@ use WebChemistry\TaskRunner\Utility\TaskRunnerUtility;
 final class TaskRunner implements ITaskRunner
 {
 
+	/** @var ITaskRunnerExtension[] */
+	private array $extensions = [];
+
+	private LoggerInterface $logger;
+
 	/**
 	 * @param ITask[] $tasks
 	 */
 	public function __construct(
 		private array $tasks,
+		?LoggerInterface $logger = null,
 	)
 	{
+		$this->logger = $logger ?? new StdoutLogger();
+	}
+
+	public function withExtension(ITaskRunnerExtension $extension): self
+	{
+		$cloned = clone $this;
+		$cloned->extensions[] = $extension;
+
+		return $cloned;
+	}
+
+	public function addExtension(ITaskRunnerExtension $extension): self
+	{
+		$this->extensions[] = $extension;
+
+		return $this;
+	}
+
+	public function removeExtension(ITaskRunnerExtension $extension): self
+	{
+		if (($key = array_search($extension, $this->extensions, true)) !== false) {
+			unset($this->extensions[$key]);
+		}
+
+		return $this;
 	}
 
 	/**
@@ -87,7 +120,7 @@ final class TaskRunner implements ITaskRunner
 		$result = new TaskRunnerResult();
 
 		foreach ($tasks as $task) {
-			$result->run[] = $this->runTask($task);
+			$result->results[] = $this->runTask($task);
 		}
 
 		return $result;
@@ -95,15 +128,20 @@ final class TaskRunner implements ITaskRunner
 
 	private function runTask(ITask $task): TaskResult
 	{
-		$result = new TaskResult($task, $logger = new StackLogger());
+		foreach ($this->extensions as $extension) {
+			$extension->beforeTask($task, $this->logger);
+		}
 
 		try {
-			$success = $task->run($logger);
+			$success = $task->run($this->logger);
 
-			$result->success = is_bool($success) ? $success : true;
+			$result = new TaskResult($task, is_bool($success) ? $success : true);
 		} catch (Throwable $exception) {
-			$result->error = $exception;
-			$result->success = false;
+			$result = new TaskResult($task, false, $exception);
+		}
+
+		foreach ($this->extensions as $extension) {
+			$extension->afterTask($task, $result, $this->logger);
 		}
 
 		return $result;
