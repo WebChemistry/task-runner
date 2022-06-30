@@ -39,9 +39,9 @@ final class ConsoleTaskRunner
 		}
 
 		match ($name) {
-			'class' => $taskRunner->run(TypeAssert::classStringOf(strtr($arg, ['/' => '\\']), ITask::class))->print(true),
-			'name' => $taskRunner->runByName($arg)->print(true),
-			'group' => $taskRunner->runByGroup($arg)->print(true),
+			'class' => $taskRunner->run(TypeAssert::classStringOf(strtr($arg, ['/' => '\\']), ITask::class)),
+			'name' => $taskRunner->runByName($arg),
+			'group' => $taskRunner->runByGroup($arg),
 		};
 	}
 
