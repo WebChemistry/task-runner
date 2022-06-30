@@ -38,11 +38,15 @@ final class ConsoleTaskRunner
 			throw new DomainException('Second argument must be a string.');
 		}
 
-		match ($name) {
+		$result = match ($name) {
 			'class' => $taskRunner->run(TypeAssert::classStringOf(strtr($arg, ['/' => '\\']), ITask::class)),
 			'name' => $taskRunner->runByName($arg),
 			'group' => $taskRunner->runByGroup($arg),
 		};
+
+		if (!$result->isSuccess()) {
+			exit(1);
+		}
 	}
 
 }
