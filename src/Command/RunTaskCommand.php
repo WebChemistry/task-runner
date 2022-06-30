@@ -10,6 +10,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Utilitte\Asserts\TypeAssert;
+use WebChemistry\TaskRunner\DI\TaskRunnerExtension;
 use WebChemistry\TaskRunner\ITask;
 use WebChemistry\TaskRunner\ITaskRunner;
 use WebChemistry\TaskRunner\Result\TaskRunnerResult;
@@ -19,11 +20,23 @@ final class RunTaskCommand extends Command
 
 	protected static $defaultName = 'task:run';
 
+	private ITaskRunner $taskRunner;
+
+	/**
+	 * @param TaskRunnerExtension[] $extensions
+	 */
 	public function __construct(
-		private ITaskRunner $taskRunner,
+		ITaskRunner $taskRunner,
+		array $extensions = [],
 	)
 	{
 		parent::__construct();
+
+		foreach ($extensions as $extension) {
+			$taskRunner = $taskRunner->withExtension($extension);
+		}
+		
+		$this->taskRunner = $taskRunner;
 	}
 
 	protected function configure(): void

@@ -30,7 +30,7 @@ final class TaskRunner implements ITaskRunner
 		$this->logger = $logger ?? new StdoutLogger();
 	}
 
-	public function withExtension(ITaskRunnerExtension $extension): self
+	public function withExtension(ITaskRunnerExtension $extension): static
 	{
 		$cloned = clone $this;
 		$cloned->extensions[] = $extension;
@@ -38,14 +38,14 @@ final class TaskRunner implements ITaskRunner
 		return $cloned;
 	}
 
-	public function addExtension(ITaskRunnerExtension $extension): self
+	public function addExtension(ITaskRunnerExtension $extension): static
 	{
 		$this->extensions[] = $extension;
 
 		return $this;
 	}
 
-	public function removeExtension(ITaskRunnerExtension $extension): self
+	public function removeExtension(ITaskRunnerExtension $extension): static
 	{
 		if (($key = array_search($extension, $this->extensions, true)) !== false) {
 			unset($this->extensions[$key]);
@@ -117,13 +117,13 @@ final class TaskRunner implements ITaskRunner
 	 */
 	private function runTasks(array $tasks): TaskRunnerResult
 	{
-		$result = new TaskRunnerResult();
+		$results = [];
 
 		foreach ($tasks as $task) {
-			$result->results[] = $this->runTask($task);
+			$results[] = $this->runTask($task);
 		}
 
-		return $result;
+		return new TaskRunnerResult($results);
 	}
 
 	private function runTask(ITask $task): TaskResult

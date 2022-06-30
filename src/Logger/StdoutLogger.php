@@ -9,8 +9,6 @@ use Stringable;
 final class StdoutLogger extends AbstractLogger
 {
 
-	private const STEP = 36;
-	private const SUCCESS = 32;
 	private const WARNING = 33;
 	private const ERROR = 31;
 
@@ -28,8 +26,6 @@ final class StdoutLogger extends AbstractLogger
 			$this->printColor((string) $message, match (strtolower($level)) {
 				LogLevel::EMERGENCY, LogLevel::ALERT, LogLevel::CRITICAL, LogLevel::ERROR => self::ERROR,
 				LogLevel::WARNING => self::WARNING,
-				'step' => self::STEP,
-				'success' => self::SUCCESS,
 				default => null,
 			});
 		}

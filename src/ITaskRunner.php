@@ -2,10 +2,17 @@
 
 namespace WebChemistry\TaskRunner;
 
+use WebChemistry\TaskRunner\Extension\ITaskRunnerExtension;
 use WebChemistry\TaskRunner\Result\TaskRunnerResult;
 
 interface ITaskRunner
 {
+
+	public function addExtension(ITaskRunnerExtension $extension): static;
+
+	public function removeExtension(ITaskRunnerExtension $extension): static;
+
+	public function withExtension(ITaskRunnerExtension $extension): static;
 
 	/**
 	 * @return ITask[]
