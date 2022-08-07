@@ -4,7 +4,7 @@ namespace WebChemistry\TaskRunner\Console;
 
 use DomainException;
 use OutOfBoundsException;
-use Utilitte\Asserts\TypeAssert;
+use Typertion\Php\TypeAssert;
 use WebChemistry\TaskRunner\ITask;
 use WebChemistry\TaskRunner\ITaskRunner;
 
