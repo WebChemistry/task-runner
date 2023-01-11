@@ -1,10 +1,14 @@
 <?php
 
 use Nette\Utils\Arrays;
+use WebChemistry\TaskRunner\IScheduledTask;
 use WebChemistry\TaskRunner\ITaskRunner;
+use WebChemistry\TaskRunner\Tracy\TaskRunnerBar;
 use WebChemistry\TaskRunner\Utility\TaskRunnerUtility;
 
 /** @var ITaskRunner $taskRunner */
+/** @var TaskRunnerBar $this */
+/** @var string $command */
 ?>
 
 <h1>Tasks</h1>
@@ -13,63 +17,30 @@ use WebChemistry\TaskRunner\Utility\TaskRunnerUtility;
 	<thead>
 		<tr>
 			<th>Class</th>
-			<th>Name</th>
-			<th>Groups</th>
+			<th>ID</th>
+			<th>Schedule</th>
 			<th>Cmd</th>
 		</tr>
 	</thead>
 	<tbody>
-		<?php foreach ($taskRunner->getTasks() as $task): ?>
-		<tr>
-			<td><?= $task::class ?></td>
-			<td><span style="cursor: pointer" class="tracy-taskRunner-copy"><?= TaskRunnerUtility::getTaskName($task) ?></span></td>
-			<td>
-				<?php if ($groups = TaskRunnerUtility::getTaskGroups($task)): ?>
-					<?php if (count($groups) === 1): ?>
-						<span style="cursor: pointer" class="tracy-taskRunner-copy"><?= Arrays::first($groups) ?></span>
-					<?php else: ?>
-						<table>
-							<tbody>
-								<?php foreach ($groups as $group): ?>
-								<tr>
-									<td><span style="cursor: pointer" class="tracy-taskRunner-copy"><?= $group ?></span></td>
-								</tr>
-								<?php endforeach; ?>
-							</tbody>
-						</table>
-					<?php endif ?>
-				<?php endif ?>
-			</td>
-			<td>
-				<a href="#" class="tracy-taskRunner-cmd-copy" data-name="<?= strtr($task::class, ['\\' => '/']) ?>">copy</a>
-			</td>
-		</tr>
+		<?php foreach ($this->groups($taskRunner) as $id => $group): ?>
+			<?php foreach ($group as $task): ?>
+			<tr>
+				<td><?= $task::class ?></td>
+				<td><span style="cursor: pointer" class="tracy-taskRunner-copy"><?= $task->getId() ?? ($id ?: 'null') ?></span></td>
+				<td><?= $task instanceof IScheduledTask ? $task->getSchedule()->getNormalized() : '' ?></td>
+				<td>
+					<a href="#" class="tracy-taskRunner-cmd-copy" data-name="<?= strtolower(strtr($task::class, ['\\' => '/'])) ?>">copy</a>
+				</td>
+			</tr>
+			<?php endforeach ?>
 		<?php endforeach ?>
 	</tbody>
 </table>
 
-<div style="margin-top: 8px">
-	Default command (editable): <input type="text" id="tracy-taskRunner-input">
-</div>
-
 <script>
 	(function () {
-		function getTemplate() {
-			const template = window.localStorage.getItem('tracy.taskRunner.defaultCommand');
-
-			if (!template) {
-				return 'console task:run %s%';
-			}
-
-			return template;
-		}
-
-		const input = document.getElementById('tracy-taskRunner-input');
-
-		input.value = getTemplate();
-		input.addEventListener('keyup', function (e) {
-			window.localStorage.setItem('tracy.taskRunner.defaultCommand', e.currentTarget.value);
-		});
+		const template = <?= json_encode($command) ?>
 
 		document.addEventListener('click', function (event) {
 			if (event.target.className === 'tracy-taskRunner-copy') {
@@ -81,7 +52,7 @@ use WebChemistry\TaskRunner\Utility\TaskRunnerUtility;
 			event.preventDefault();
 
 			if (event.target.className === 'tracy-taskRunner-cmd-copy') {
-				navigator.clipboard.writeText(getTemplate().replace('%s%', `"${event.target.dataset.name}"`));
+				navigator.clipboard.writeText(template.replace('%s%', `"${event.target.dataset.name}"`));
 			}
 		});
 	})();

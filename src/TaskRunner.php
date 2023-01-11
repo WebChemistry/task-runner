@@ -9,7 +9,6 @@ use WebChemistry\TaskRunner\Extension\ITaskRunnerExtension;
 use WebChemistry\TaskRunner\Logger\StdoutLogger;
 use WebChemistry\TaskRunner\Result\TaskResult;
 use WebChemistry\TaskRunner\Result\TaskRunnerResult;
-use WebChemistry\TaskRunner\Utility\TaskRunnerUtility;
 
 final class TaskRunner implements ITaskRunner
 {
@@ -38,6 +37,14 @@ final class TaskRunner implements ITaskRunner
 		return $cloned;
 	}
 
+	public function withLogger(LoggerInterface $logger): static
+	{
+		$clone = clone $this;
+		$clone->logger = $logger;
+
+		return $clone;
+	}
+
 	public function addExtension(ITaskRunnerExtension $extension): static
 	{
 		$this->extensions[] = $extension;
@@ -55,61 +62,54 @@ final class TaskRunner implements ITaskRunner
 	}
 
 	/**
-	 * @template T of ITask
-	 * @param class-string<T> $class
-	 * @return T[]
+	 * @return ITask[]
 	 */
-	private function getTasksByClassName(string $class): array
+	public function getTasks(?string $id = null): array
 	{
-		$return = [];
+		if ($id === null) {
+			return $this->tasks;
+		}
+
+		$tasks = [];
 
 		foreach ($this->tasks as $task) {
-			if ($task instanceof $class) {
-				$return[] = $task;
+			if ($task->getId() === $id || $this->equalSchedule($id, $task) || $this->equalClassNames($id, $task::class)) {
+				$tasks[] = $task;
 			}
 		}
 
-		return $return;
+		return $tasks;
 	}
 
 	/**
-	 * @return ITask[]
+	 * @param string $id class name or schedule or task name
 	 */
-	public function getTasks(): array
+	public function run(string $id): TaskRunnerResult
 	{
-		return $this->tasks;
-	}
-
-	public function runByGroup(string $group): TaskRunnerResult
-	{
-		$tasks = TaskRunnerUtility::getTaskByGroups($this->tasks)[$group] ?? [];
+		$tasks = $this->getTasks($id);
 
 		if (!$tasks) {
-			throw new LogicException(sprintf('No task grouped as %s', $group));
+			throw new LogicException(sprintf('No tasks found by %s.', $id));
 		}
 
 		return $this->runTasks($tasks);
 	}
 
-	public function runByName(string $name): TaskRunnerResult
+	private function equalSchedule(string $schedule, ITask $task): bool
 	{
-		$task = TaskRunnerUtility::getTaskNames($this->tasks)[$name] ?? throw new LogicException(sprintf('No task named as %s', $name));
-
-		return $this->runTasks([$task]);
-	}
-
-	/**
-	 * @param class-string<ITask> $className
-	 */
-	public function run(string $className): TaskRunnerResult
-	{
-		$tasks = $this->getTasksByClassName($className);
-
-		if (!$tasks) {
-			throw new LogicException(sprintf('No tasks found by %s', $className));
+		if (!$task instanceof IScheduledTask) {
+			return false;
 		}
 
-		return $this->runTasks($tasks);
+		return $task->getSchedule()->getNormalized() === $schedule;
+	}
+
+	private function equalClassNames(string $first, string $second): bool
+	{
+		$first = strtr($first, ['\\' => '/']);
+		$second = strtr($second, ['\\' => '/']);
+
+		return strcasecmp($first, $second) === 0;
 	}
 
 	/**

@@ -3,6 +3,7 @@
 namespace WebChemistry\TaskRunner;
 
 use Psr\Log\LoggerInterface;
+use WebChemistry\TaskRunner\Attribute\Schedule;
 
 interface ITask
 {
@@ -11,5 +12,9 @@ interface ITask
 	 * @return void|bool
 	 */
 	public function run(LoggerInterface $logger);
+
+	public function getId(): ?string;
+
+	public function getDescription(): ?string;
 
 }

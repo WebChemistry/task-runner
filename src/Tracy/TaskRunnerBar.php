@@ -4,14 +4,17 @@ namespace WebChemistry\TaskRunner\Tracy;
 
 use Nette\DI\Container;
 use Nette\Utils\Helpers;
-use Nette\Utils\Strings;
 use Tracy\IBarPanel;
+use WebChemistry\TaskRunner\IScheduledTask;
 use WebChemistry\TaskRunner\ITaskRunner;
+use WebChemistry\TaskRunner\Utility\TaskIdentifier;
+use WebChemistry\TaskRunner\Utility\TaskSimpleGrouper;
 
 final class TaskRunnerBar implements IBarPanel
 {
 
 	public function __construct(
+		private string $command,
 		private Container $container,
 	)
 	{
@@ -30,9 +33,15 @@ final class TaskRunnerBar implements IBarPanel
 	{
 		return Helpers::capture(function (): void {
 			$taskRunner = $this->container->getByType(ITaskRunner::class);
-			
+			$command = $this->command;
+
 			require __DIR__ . '/templates/panel.phtml';
 		});
+	}
+
+	public function groups(ITaskRunner $taskRunner): array
+	{
+		return TaskSimpleGrouper::groups($taskRunner->getTasks());
 	}
 
 }
