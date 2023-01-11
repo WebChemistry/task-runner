@@ -3,9 +3,6 @@
 namespace WebChemistry\TaskRunner\Console;
 
 use DomainException;
-use OutOfBoundsException;
-use Typertion\Php\TypeAssert;
-use WebChemistry\TaskRunner\ITask;
 use WebChemistry\TaskRunner\ITaskRunner;
 
 final class ConsoleTaskRunner
@@ -27,22 +24,13 @@ final class ConsoleTaskRunner
 			}
 		}
 
-		$name = $_SERVER['argv'][1] ?? null;
-		$arg = $_SERVER['argv'][2] ?? null;
+		$id = $_SERVER['argv'][1] ?? null;
 
-		if (!in_array($name, ['class', 'name', 'group'], true)) {
-			throw new OutOfBoundsException('First argument must be class or name or group.');
+		if (!$id) {
+			throw new DomainException('Please give id.');
 		}
 
-		if (!$arg) {
-			throw new DomainException('Second argument must be a string.');
-		}
-
-		$result = match ($name) {
-			'class' => $taskRunner->run(TypeAssert::classStringOf(strtr($arg, ['/' => '\\']), ITask::class)),
-			'name' => $taskRunner->runByName($arg),
-			'group' => $taskRunner->runByGroup($arg),
-		};
+		$result = $taskRunner->run($id);
 
 		if (!$result->isSuccess()) {
 			exit(1);
