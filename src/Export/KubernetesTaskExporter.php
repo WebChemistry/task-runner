@@ -19,6 +19,8 @@ final class KubernetesTaskExporter implements ITaskExporter
 		private string $image,
 		private array $command,
 		private array $containerSpec = [],
+		private string $restartPolicy = 'Never',
+		private int $backoffLimit = 0,
 	)
 	{
 	}
@@ -30,32 +32,33 @@ final class KubernetesTaskExporter implements ITaskExporter
 
 		foreach ($grouper->getGroups() as $group) {
 			$comment = "# Composition:\n# \t" . implode("\n# \t", array_map(
-				fn (ITask $task) => implode(' - ', array_filter([$task::class, $task->getDescription()])),
-				$group->getTasks(),
-			)) . "\n";
+					fn (ITask $task) => implode(' - ', array_filter([$task::class, $task->getDescription()])),
+					$group->getTasks(),
+				)) . "\n";
 			$schedule = $group->getSchedule()->getNormalized();
 
 			$documents[] = $comment . Yaml::dump(
-				$this->createSpecification($schedule, $group->getId(), [
-					'containers' => [
-						array_merge(
-							[
-								'name' => 'php',
-								'image' => $this->image,
-								'command' => array_map(
-									fn (string $string) => strtr($string, [
-										'%c%' => $group->getId(),
-									]),
-									$this->command,
-								),
-							],
-							$this->containerSpec,
-						),
-					],
-				]),
-				PHP_INT_MAX,
-				flags: Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK,
-			);
+					$this->createSpecification($schedule, $group->getId(), [
+						'restartPolicy' => $this->restartPolicy,
+						'containers' => [
+							array_merge(
+								[
+									'name' => 'php',
+									'image' => $this->image,
+									'command' => array_map(
+										fn (string $string) => strtr($string, [
+											'%c%' => $group->getId(),
+										]),
+										$this->command,
+									),
+								],
+								$this->containerSpec,
+							),
+						],
+					]),
+					PHP_INT_MAX,
+					flags: Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK,
+				);
 		}
 
 		return implode("---\n", $documents);
@@ -73,6 +76,7 @@ final class KubernetesTaskExporter implements ITaskExporter
 				'schedule' => $schedule,
 				'jobTemplate' => [
 					'spec' => [
+						'backoffLimit' => $this->backoffLimit,
 						'template' => [
 							'spec' => $spec,
 						],
