@@ -21,6 +21,7 @@ final class KubernetesTaskExporter implements ITaskExporter
 		private array $containerSpec = [],
 		private string $restartPolicy = 'Never',
 		private int $backoffLimit = 0,
+		private ?string $prefix = null,
 	)
 	{
 	}
@@ -70,7 +71,7 @@ final class KubernetesTaskExporter implements ITaskExporter
 			'apiVersion' => 'batch/v1',
 			'kind' => 'CronJob',
 			'metadata' => [
-				'name' => $name,
+				'name' => $this->prefix . $name,
 			],
 			'spec' => [
 				'schedule' => $schedule,

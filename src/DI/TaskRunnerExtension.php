@@ -24,6 +24,7 @@ final class TaskRunnerExtension extends CompilerExtension
 		return Expect::structure([
 			'exporter' => Expect::structure([
 				'kubernetes' => Expect::structure([
+					'prefix' => Expect::string()->nullable(),
 					'image' => Expect::string()->required(),
 					'command' => Expect::array(Expect::string())->required(),
 					'containerSpec' => Expect::array(),
@@ -59,6 +60,7 @@ final class TaskRunnerExtension extends CompilerExtension
 					'image' => $exporter->image,
 					'command' => $exporter->command,
 					'containerSpec' => $exporter->containerSpec,
+					'prefix' => $exporter->prefix,
 				]);
 		}
 	}
